@@ -1,0 +1,28 @@
+#include <stdio.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <string.h>
+#include <unistd.h>
+
+struct msg {
+    long type;
+    char text[100];
+};
+
+int main() {
+    key_t key = 5678;
+    int msgid = msgget(key, 0666 | IPC_CREAT);
+    struct msg message;
+
+    if (fork() == 0) {
+        msgrcv(msgid, &message, sizeof(message.text), 1, 0);
+        printf("Child received: %s\n", message.text);
+    } else {
+        message.type = 1;
+        strcpy(message.text, "Hello via Message Queue");
+        msgsnd(msgid, &message, sizeof(message.text), 0);
+        wait(NULL);
+        msgctl(msgid, IPC_RMID, NULL);
+    }
+    return 0;
+}
